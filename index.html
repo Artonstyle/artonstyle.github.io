@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Finanz-Planer 2026 - Einmal-Zahlungen</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1150px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #34495e; padding-bottom: 15px; }
+        .nav-btn { background: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border-top: 4px solid #3498db; text-align: center; }
+        .stat-card b { font-size: 18px; display: block; margin-top: 5px; }
+
+        .input-form { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+            gap: 20px; background: #eef2f7; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #d1d9e4;
+        }
+        
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
+
+        input, select { padding: 12px; border: 1px solid #becad6; border-radius: 6px; font-size: 14px; background: white; }
+        .add-btn { background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 45px; align-self: flex-end; }
+
+        .backup-section { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-backup { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        th { background: #34495e; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; position: relative; }
+        .is-paid { background-color: #f1f9f1; color: #95a5a6; }
+        .edit-link { color: #3498db; cursor: pointer; border-bottom: 1px dashed #3498db; font-weight: bold; }
+
+        .hidden-date-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        .calendar-section { margin-top: 30px; border-top: 3px solid #34495e; padding-top: 20px; }
+        .cal-row { display: flex; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .cal-day { min-width: 180px; font-weight: bold; color: #2980b9; }
+        .cal-content { flex-grow: 1; }
+        .cal-entry { background: #fff3cd; padding: 2px 8px; border-radius: 4px; color: #856404; font-weight: bold; margin-right: 10px; display: inline-block; border: 1px solid #ffeeba; }
+        
+        .weekend-sun { background-color: #fff0f0 !important; }
+        .weekend-sun .cal-day { color: #c0392b; }
+        .holiday-row { background-color: #fff5f5 !important; }
+        .holiday-label { font-size: 11px; color: #e74c3c; font-style: italic; margin-left: 10px; }
+        .one-time-badge { font-size: 10px; background: #34495e; color: white; padding: 2px 5px; border-radius: 3px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">◀ Letzter Monat</button>
+        <h2 id="labelMonth">Januar 2026</h2>
+        <button class="nav-btn" onclick="changeMonth(1)">Nächster Monat ▶</button>
+    </div>
+
+    <div class="backup-section">
+        <button class="btn-backup" onclick="exportData()">💾 Backup</button>
+        <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 Laden</button>
+        <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+    </div>
+
+    <div class="stat-row">
+        <div class="stat-card"><small>GESAMT</small><b id="sumTotal">0.00 €</b></div>
+        <div class="stat-card" style="border-top-color: #2ecc71;"><small>BEZAHLT</small><b id="sumPaid">0.00 €</b></div>
+        <div class="stat-card" style="border-top-color: #f1c40f;"><small>OFFEN</small><b id="sumOpen">0.00 €</b></div>
+        <div class="stat-card" style="border-top-color: #9b59b6;"><small>JAHR 2026</small><b id="sumYear">0.00 €</b></div>
+    </div>
+
+    <div class="input-form">
+        <div class="input-group">
+            <label>Bezeichnung</label>
+            <input type="text" id="inName" placeholder="z.B Miete">
+        </div>
+        <div class="input-group">
+            <label>Kategorie</label>
+            <input type="text" id="inCat" placeholder="z.B Privat">
+        </div>
+        <div class="input-group">
+            <label>Fällig am</label>
+            <input type="date" id="inDate">
+        </div>
+        <div class="input-group">
+            <label>Betrag (€)</label>
+            <input type="number" id="inAmount" placeholder="0.00">
+        </div>
+        <div class="input-group">
+            <label>Intervall</label>
+            <select id="inInterval">
+                <option value="0">Einmalig (nur diesen Monat)</option>
+                <option value="1">Monatlich</option>
+                <option value="3">Alle 3 Monate</option>
+                <option value="6">Halbjährlich</option>
+                <option value="12">Jährlich</option>
+            </select>
+        </div>
+        <button class="add-btn" onclick="addEntry()">Hinzufügen ✨</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Bezeichnung</th>
+                <th>Kategorie</th>
+                <th>Datum</th>
+                <th>Betrag</th>
+                <th>Intervall</th>
+                <th>Aktion</th>
+                <th style="text-align:center">Bezahlt?</th>
+            </tr>
+        </thead>
+        <tbody id="mainTableBody"></tbody>
+    </table>
+
+    <div class="calendar-section">
+        <h3>📅 Zahlungskalender 2026</h3>
+        <div id="calendarList"></div>
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('finanzen_2026_v5')) || [];
+    let paidStatus = JSON.parse(localStorage.getItem('paid_2026_v5')) || {};
+    let viewDate = new Date(2026, 0, 1);
+
+    const holidays2026 = {
+        "0-1": "Neujahr", "3-3": "Karfreitag", "3-6": "Ostermontag", "4-1": "Tag der Arbeit",
+        "4-14": "Christi Himmelfahrt", "4-25": "Pfingstmontag", "9-3": "Tag der Deutschen Einheit",
+        "11-25": "1. Weihnachtstag", "11-26": "2. Weihnachtstag"
+    };
+
+    function addEntry() {
+        const name = document.getElementById('inName').value;
+        const cat = document.getElementById('inCat').value.toUpperCase() || 'DIVERSES';
+        const date = document.getElementById('inDate').value;
+        const amount = parseFloat(document.getElementById('inAmount').value);
+        const interval = parseInt(document.getElementById('inInterval').value);
+
+        if (name && amount && date) {
+            expenses.push({ name, cat, date, amount, interval });
+            saveAndRender();
+            document.getElementById('inName').value = '';
+            document.getElementById('inAmount').value = '';
+        } else { alert("Bitte Name, Datum und Betrag ausfüllen!"); }
+    }
+
+    function isDueInMonth(exp, checkDate) {
+        const start = new Date(exp.date);
+        const diff = (checkDate.getFullYear() - start.getFullYear()) * 12 + (checkDate.getMonth() - start.getMonth());
+        
+        // Einmalige Zahlung (Interval 0)
+        if (exp.interval === 0) {
+            return start.getFullYear() === checkDate.getFullYear() && start.getMonth() === checkDate.getMonth();
+        }
+        // Wiederkehrende Zahlungen
+        return diff >= 0 && (diff % exp.interval === 0);
+    }
+
+    function formatDE(dateString) {
+        const d = new Date(dateString);
+        return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function render() {
+        const currentMonth = viewDate.getMonth();
+        const currentYear = viewDate.getFullYear();
+        document.getElementById('labelMonth').innerText = viewDate.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
+        
+        const tbody = document.getElementById('mainTableBody');
+        tbody.innerHTML = '';
+        let total = 0, paid = 0, monthlyItems = [];
+
+        expenses.forEach((e, i) => {
+            if (isDueInMonth(e, viewDate)) {
+                const key = `${currentMonth}_${currentYear}_${i}`;
+                const isPaid = paidStatus[key];
+                total += e.amount;
+                if (isPaid) paid += e.amount;
+                monthlyItems.push({...e, index: i, isPaid: isPaid});
+
+                tbody.innerHTML += `
+                    <tr class="${isPaid ? 'is-paid' : ''}">
+                        <td>
+                            <span class="edit-link" onclick="editName(${i})">${e.name}</span>
+                            ${e.interval === 0 ? '<span class="one-time-badge">EINMALIG</span>' : ''}
+                        </td>
+                        <td>${e.cat}</td>
+                        <td>
+                            <span class="edit-link">${formatDE(e.date)}</span>
+                            <input type="date" class="hidden-date-input" value="${e.date}" onchange="updateDate(${i}, this.value)">
+                        </td>
+                        <td><span class="edit-link" onclick="editAmount(${i})">${e.amount.toFixed(2)} €</span></td>
+                        <td>${e.interval === 0 ? 'Einmalig' : e.interval === 1 ? 'mtl.' : e.interval === 3 ? '3-mtl.' : 'alle ' + e.interval + ' Mon.'}</td>
+                        <td><button onclick="remove(${i})" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold">✕</button></td>
+                        <td style="text-align:center"><input type="checkbox" style="transform: scale(1.2);" ${isPaid ? 'checked' : ''} onchange="togglePaid(${i})"></td>
+                    </tr>`;
+            }
+        });
+
+        document.getElementById('sumTotal').innerText = total.toFixed(2) + " €";
+        document.getElementById('sumPaid').innerText = paid.toFixed(2) + " €";
+        document.getElementById('sumOpen').innerText = (total - paid).toFixed(2) + " €";
+        
+        let yTotal = 0;
+        expenses.forEach(e => {
+            if (e.interval === 0) yTotal += e.amount;
+            else yTotal += (e.amount * (12 / e.interval));
+        });
+        document.getElementById('sumYear').innerText = yTotal.toFixed(2) + " €";
+
+        const calList = document.getElementById('calendarList');
+        calList.innerHTML = '';
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(currentYear, currentMonth, d);
+            const isSunday = dateObj.getDay() === 0;
+            const holidayName = holidays2026[`${currentMonth}-${d}`] || "";
+            let dailyContent = "";
+            monthlyItems.forEach(item => {
+                if (new Date(item.date).getDate() === d) {
+                    dailyContent += `<span class="cal-entry">${item.name}: ${item.amount.toFixed(2)}€</span>`;
+                }
+            });
+
+            calList.innerHTML += `
+                <div class="cal-row ${isSunday ? 'weekend-sun' : ''} ${holidayName ? 'holiday-row' : ''}">
+                    <div class="cal-day">
+                        ${d}. ${dateObj.toLocaleString('de-DE', { weekday: 'long' })}
+                        ${holidayName ? `<span class="holiday-label">(${holidayName})</span>` : ''}
+                    </div>
+                    <div class="cal-content">${dailyContent}</div>
+                </div>`;
+        }
+    }
+
+    function updateDate(idx, newVal) { if (newVal) { expenses[idx].date = newVal; saveAndRender(); } }
+    function editName(idx) { let val = prompt("Neuer Name:", expenses[idx].name); if (val) { expenses[idx].name = val; saveAndRender(); } }
+    function editAmount(idx) { let val = prompt("Neuer Betrag:", expenses[idx].amount); if (val) { expenses[idx].amount = parseFloat(val.replace(',', '.')); saveAndRender(); } }
+    function togglePaid(idx) {
+        const key = `${viewDate.getMonth()}_${viewDate.getFullYear()}_${idx}`;
+        paidStatus[key] = !paidStatus[key];
+        localStorage.setItem('paid_2026_v5', JSON.stringify(paidStatus));
+        render();
+    }
+    function exportData() {
+        const data = JSON.stringify({expenses, paidStatus});
+        const blob = new Blob([data], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'Finanzplaner_2026.json'; a.click();
+    }
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imported = JSON.parse(e.target.result);
+            expenses = imported.expenses; paidStatus = imported.paidStatus; saveAndRender();
+        };
+        reader.readAsText(file);
+    }
+    function remove(idx) { if (confirm("Löschen?")) { expenses.splice(idx, 1); saveAndRender(); } }
+    function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); render(); }
+    function saveAndRender() { localStorage.setItem('finanzen_2026_v5', JSON.stringify(expenses)); render(); }
+    render();
+</script>
+</body>
+</html>
