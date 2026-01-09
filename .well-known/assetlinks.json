@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.avnur.finanzapp",
+    "sha256_cert_fingerprints": ["DF:2E:E7:7C:CA:DF:6C:7C:87:F6:C3:F3:52:E6:A5:BD:21:1D:E6:AB:49:16:86:59:00:BE:D3:2D:91:CF:14:3D"]
+  }
+}]
